@@ -19,29 +19,13 @@ class RustKit < Sinatra::Base
       all_results_size: response.length
     }.to_json
   end
-
-  get '/' do
-    erb :main, :locals => { :default_results => libraries_on_page(0), :tags => Tools::get_tags.keys.to_json }
-  end
-
-  get '/api/libraries/:page' do #There are CONSTANTS[:per_page] library listing per page, and page begins at 0.
-    libraries_on_page(params[:page].to_i)
-  end
-
-  get '/result.html' do
-    send_file File.join(settings.public_folder, 'templates/result.html')
-  end
-
-  post '/api/search/:page' do
-
-    page = params[:page].to_i
-    ng_params = JSON.parse(request.body.read)
-    query = ng_params["query"]
+  
+  def get_results(query, page)
     #Find tags
     tags = []
     cur_tag = ""
     in_tag = false
-
+    
     query.each_char do |c|
       if c == "["
         if cur_tag.length > 0 && in_tag
@@ -86,5 +70,32 @@ class RustKit < Sinatra::Base
       results: response[(CONSTANTS[:per_page]*page)...(CONSTANTS[:per_page]+CONSTANTS[:per_page]*page)],
       all_results_size: response.length
     }.to_json
+  end
+
+  get '/' do
+    erb :main, :locals => { :default_results => libraries_on_page(0), :tags => Tools::get_tags.keys.to_json }
+  end
+
+  get '/api/libraries/:page' do #There are CONSTANTS[:per_page] library listing per page, and page begins at 0.
+    libraries_on_page(params[:page].to_i)
+  end
+
+  get '/result.html' do
+    send_file File.join(settings.public_folder, 'templates/result.html')
+  end
+
+  post '/search/:query/:page' do
+    page = params[:page].to_i
+    query = params[:query]
+
+    get_results(query, page)
+  end
+
+  post '/api/search/:page' do
+    page = params[:page].to_i
+    ng_params = JSON.parse(request.body.read)
+    query = ng_params["query"]
+
+    get_results(query, page)
   end
 end
